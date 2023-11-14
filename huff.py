@@ -4,6 +4,9 @@
 import argparse, bisect
 from pathlib import Path
 
+import sys
+sys.set_int_max_str_digits(0)
+
 # -- Classe de nós para criação da árvore binária --
 
 # Classe
@@ -15,6 +18,36 @@ class Node:
         self.code = code
         self.left = left    
         self.right = right
+
+    # Método de testes que imprime a árvore
+    def printTree(self):
+        def printNode(node, val=0):
+            if not node == None:
+                printNode(node.right, val+1)
+                print(' '*2*val+'- '+str(node.char)+' ('+node.code+')')
+                printNode(node.left, val+1)
+        return printNode(self)
+
+    # Método que atualiza os códigos de cada nó
+    def updateCodes(self):
+        def updateCode(node, code=''):
+            if not node == None:
+                updateCode(node.left, code+node.code)
+                updateCode(node.right, code+node.code)
+                node.code = code + node.code
+        return updateCode(self)
+    
+    # Método que pega as folhas da árvore
+    def getLeaves(self):
+        leaves = {}
+        def getLeaf(node):
+            if not node == None:
+                if (node.left == None and node.right == None):
+                    leaves[node.char] = node.code
+                getLeaf(node.left)
+                getLeaf(node.right)
+        getLeaf(self)
+        return leaves
 
 # -- Função Principal --
 
@@ -57,8 +90,36 @@ def compact(file):
     if file.endswith('.huff'):
         return print('Erro. Arquivo escolhido já é um .huff')
 
-    # Algoritmo de Huffman
-    h = huffman(open(file, "r", encoding="utf8").read())
+    # Algoritmo de Huffman, retorna a árvore binária com seus custos
+    data = open(file, "rb").read()
+    huff = huffman(data)
+
+    # Pegando apenas as folhas da árvore
+    leaves = huff.getLeaves()
+
+    
+    print(leaves)
+
+    # Substituindo cada byte por seu código
+    """codedData = ''
+    for x in data:
+        codedData += leaves[x.to_bytes()]
+
+    # Fazendo o zero-padding
+    qty0 = len(codedData) % 8
+    if qty0 > 0:
+        qty0 = 8 - qty0
+
+    codedData += '0' * qty0
+
+    # Transformando os bits codificados em bytes
+    print(int(codedData))
+    codedBytes = int(codedData).to_bytes(len(codedData))
+    print(codedBytes)
+
+    # Escrevendo os bytes no arquivo .huff
+    #with open("teste.huff", "ab") as binaryFile:
+    #    binaryFile.write(codedBytes)"""
 
 # Função de descompacta um arquivo .huff
 def decompact(file):
@@ -70,56 +131,42 @@ def decompact(file):
 
 # Função que realiza o algoritmo de codificação de Huffman
 def huffman(string):
+    
     # Pegando a frequência de cada dígito
     freq = {}
     for i in string:
-        if i in freq:
-            freq[i] += 1
+        byte = i.to_bytes()
+
+        if byte in freq:
+            freq[byte] += 1
         else:
-            freq[i] = 1
+            freq[byte] = 1
 
     freq = sorted(freq.items(), key=lambda x:x[1], reverse=True)
-    
+
     # Convertendo cada tupla de digito / frequência em um nó
     tree = []
     for x in freq:
         tree.append(Node(x[0], x[1]))
-
+        
     # Montando a árvore
     while len(tree) > 1:
-        node1 = tree[len(tree) - 1]
-        node1.code = '1'
+        nodeLeft = tree[len(tree) - 1]
+        nodeLeft.code = '0'
         tree.pop()
 
-        node2 = tree[len(tree) - 1]   
-        node2.code = '0'      
+        nodeRight = tree[len(tree) - 1]   
+        nodeRight.code = '1'      
         tree.pop()
         
-        node = Node('in', node1.val+node2.val, '', node1, node2)
+        node = Node('in', nodeLeft.val+nodeRight.val, '', nodeLeft, nodeRight)
 
         bisect.insort(tree, node, key=lambda x:-1*x.val)
 
-    # Contruindo o código para cada valor de acordo com a árvore
-        # direita -> 0, esquerda -> 1
-    getCode(tree[0])
+    # Contruindo o código para cada byte de acordo com a árvore
+    tree[0].updateCodes()   # direita -> 1, esquerda -> 0
     
     return tree[0]
-
-# Função que pega o código de cada nó
-def getCode(node, code='', codeList=[]): 
-    
-    # Código do nó atual
-    newCode = code + node.code
-    
-    # Se não é folha
-    if (node.left): 
-        getCode(node.left, newCode) 
-    if (node.right): 
-        getCode(node.right, newCode) 
-    
-    # É folha
-    if (not node.left and not node.right): 
-        print(node.char + ' ' + newCode)
 
 # -- Main --
 
