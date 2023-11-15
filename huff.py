@@ -1,7 +1,7 @@
 # Pedro José de Araújo Siqueira Lima - 190036541
 # Teoria da Informação - Projeto Final
 
-import argparse, bisect, math, os
+import argparse, bisect, math, os, pickle
 from pathlib import Path
 
 import sys
@@ -126,11 +126,11 @@ def compact(file):
 
     # Adicionando o cabeçalho que será utilizado na decodificação
     header = {v[0]: k for k, v in leaves.items()}
-    print(header)
+    codedHeader = pickle.dumps(header)
 
     # Escrevendo os bytes no arquivo .huff
     with open(compactedFile, "wb") as binaryFile:
-        binaryFile.write(codedBytes)
+        binaryFile.write(codedHeader + b'HEADER' + codedBytes)
         binaryFile.close()
 
     # Calculando entropia e tamanho médio
@@ -149,27 +149,31 @@ def compact(file):
 
 # Função de descompacta um arquivo .huff
 def decompact(file):
-
-    header = {'00000': b'\r', '0000100': b'\xa3', '0000101000': b'G', '0000101001': b'y', '000010101': b':', '0000101100000': b'(', '0000101100001': b'\xad', '000010110001000': b'\x93', '000010110001001': b'5', '00001011000101': b'\xa0', '0000101100011': b'|', '00001011001': b'\xbb', '0000101101': b'\xb3', '000010111': b'O', '000011000': b'D', '0000110010': b'\xc2', '00001100110': b'\xab', '00001100111': b'\xb5', '00001101': b'C', '00001110': b'\xa1', '00001111': b"'", '00010': b'c', '000110': b'v', '000111': b'h', '001': b'a', '0100': b'r', '0101': b's', '0110000000': b'\xb4', '0110000001': b'V', '0110000010000000': b'+', '011000001000000100': b'&', '0110000010000001010': b'~', '0110000010000001011': b'\xb2', '01100000100000011000': b'\x8a', '01100000100000011001': b'\xb9', '01100000100000011010': b'@', '01100000100000011011': b'%', '011000001000000111': b'\x87', '011000001000001': b'3', '01100000100001': b'\x81', '011000001000100': b'*', '01100000100010100': b']', '01100000100010101': b'[', '0110000010001011': b'9', '011000001000110': b'Y', '011000001000111': b'4', '011000001001000': b'2', '011000001001001': b'}', '011000001001010': b'{', '01100000100101100': b'\xb1', '01100000100101101': b'Z', '0110000010010111': b'7', '0110000010011000': b'/', '01100000100110010': b'K', '011000001001100110': b'\xa2', '011000001001100111': b'$', '011000001001101': b'\xba', '011000001001110': b'8', '011000001001111': b'X', '01100000101': b'L', '0110000011': b'T', '01100001': b'\xa7', '011000100': b'M', '011000101': b'x', '01100011000': b'F', '01100011001': b'B', '0110001101': b';', '011000111': b'A', '0110010': b'q', '01100110': b'z', '01100111': b'E', '01101': b'l', '011100': b'.', '011101': b'\xc3', '01111': b't', '1000000': b'f', '10000010000': b'Q', '10000010001': b'I', '1000001001': b'N', '100000101': b'\xa9', '100000110000': b'k', '100000110001': b'H', '100000110010': b'^', '100000110011': b'\x89', '1000001101': b'?', '100000111': b'j', '100001': b'p', '10001': b'u', '10010': b'm', '1001100': b'b', '1001101': b'-', '1001110000': b'S', '10011100010': b'\xaa', '1001110001100000': b'6', '1001110001100001': b'W', '1001110001100010': b'"', '1001110001100011': b'#', '100111000110010': b'\xa8', '100111000110011': b'0', '10011100011010': b'1', '10011100011011': b')', '100111000111': b'w', '100111001': b'_', '1001110100': b'P', '10011101010': b'R', '100111010110': b'J', '100111010111': b'U', '100111011': b'!', '1001111': b'g', '101': b' ', '11000': b'n', '11001': b'd', '1101': b'o', '111000': b',', '111001': b'\n', '11101': b'i', '1111': b'e'}
-
     # Verificando se arquivo escolhido é um .huff
     if not file.endswith('.huff'):
         return print('Erro. Arquivo escolhido não é um .huff')
     
+    # Lendo os bytes do arquivo
     data = b''
     with open(file, "rb") as dataFile:
-        data = toBinary(dataFile.read())
+        data = dataFile.read()
         dataFile.close()
+
+    # Separando o header do resto
+    data = data.split(b'HEADER')
+    header = pickle.loads(data[0])
+    code = toBinary(data[1])
 
     # Substituindo cada byte por seu código (funciona, mas demora)
     codedData = b''
     test = ''
-    for x in data[:-7]:
+    for x in code:      # pensar como remover o padding
         test += x
         if header.get(test) != None:
             codedData += header[test]
             test = ''
 
+    # Escrevendo os dados no arquivo descompactado
     print(codedData)
 
 # Função que realiza o algoritmo de codificação de Huffman
