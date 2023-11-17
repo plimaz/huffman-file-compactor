@@ -5,10 +5,10 @@ Implementação de um compactador / descompactador de arquivos via linha de coma
 
 #### Compactar: 
 ```bash
-    ... -c arquivo.txt
+    py huff.py -c arquivo.txt
 ```
 #### Descompactar:
 ```bash
-    ... -d arquivo.huff
+    py huff.py -d arquivo.huff
 ```
 

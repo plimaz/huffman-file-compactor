@@ -2,7 +2,6 @@
 # Teoria da Informação - Projeto Final
 
 import argparse, bisect, math, os, pickle
-from pathlib import Path
 
 import sys
 sys.set_int_max_str_digits(0)
@@ -89,17 +88,16 @@ def compact(file):
     # Verificando se arquivo existe
     if not os.path.exists(file):
         return print('Arquivo escolhido não existe.')
-
-    # Verificando se arquivo escolhido é um .huff
-    if file.endswith('.huff'):
-        return print('Erro. Arquivo escolhido já é um .huff')
     
     # Verificando se arquivo já existe
-    compactedFile = Path(file).stem + ".huff"
-    if os.path.exists(compactedFile):
-        ask = input('\n' + compactedFile + ' já existe. Deseja sobrescreve-lo? (y / n) ')
-        if (ask == 'N' or ask == 'n'):
-            return print('\nCompactação cancelada.\n')
+    fileName, fileExt = os.path.splitext(file)
+
+    # Arrumando o nome
+    compactedFile = fileName + ".huff"
+    count = 1
+    while os.path.exists(compactedFile):
+        compactedFile = fileName + ' ('+str(count)+')' + '.huff'
+        count += 1
 
     # Lendo os bytes do arquivo
     data = b''
@@ -119,13 +117,13 @@ def compact(file):
         codedData += (leaves[x.to_bytes()])[0]
 
     # Fazendo o zero-padding
-    codedData = zeroPadding(codedData)
+    codedData, q = zeroPadding(codedData)
 
     # Transformando os bits codificados em bytes
     codedBytes = toBytes(codedData)
 
-    # Adicionando o cabeçalho que será utilizado na decodificação
-    header = {v[0]: k for k, v in leaves.items()}
+    # Adicionando o cabeçalho que será utilizado na decodificaçãox
+    header = {'c': {v[0]: k for k, v in leaves.items()}, 'p': q, 'f': fileExt}
     codedHeader = pickle.dumps(header)
 
     # Escrevendo os bytes no arquivo .huff
@@ -149,8 +147,11 @@ def compact(file):
 
 # Função de descompacta um arquivo .huff
 def decompact(file):
+    # Verificando se o arquivo escolhido é um .huff
+    fileName, fileHuff = os.path.splitext(file)
+
     # Verificando se arquivo escolhido é um .huff
-    if not file.endswith('.huff'):
+    if not fileHuff == '.huff':
         return print('Erro. Arquivo escolhido não é um .huff')
     
     # Lendo os bytes do arquivo
@@ -162,19 +163,35 @@ def decompact(file):
     # Separando o header do resto
     data = data.split(b'HEADER')
     header = pickle.loads(data[0])
-    code = toBinary(data[1])
+    codewords = header['c']
+    padding = header['p']
+    fileExt = header['f']
+
+    code = toBinary((data[1]))[:-padding]
 
     # Substituindo cada byte por seu código (funciona, mas demora)
     codedData = b''
     test = ''
     for x in code:      # pensar como remover o padding
         test += x
-        if header.get(test) != None:
-            codedData += header[test]
+        if codewords.get(test) != None:
+            codedData += codewords[test]
             test = ''
 
+    # Arrumando o nome
+    unpackedFile = fileName + fileExt 
+    count = 1
+    while os.path.exists(unpackedFile):
+        unpackedFile = fileName + ' ('+str(count)+')' + fileExt
+        count += 1
+
     # Escrevendo os dados no arquivo descompactado
-    print(codedData)
+    with open(unpackedFile, "wb") as binaryFile:
+        binaryFile.write(codedData)
+        binaryFile.close()
+
+    # Imprimindo tudo na tela
+    print('\nArquivo descomprimido em "'+unpackedFile+'" com sucesso!\n')
 
 # Função que realiza o algoritmo de codificação de Huffman
 def huffman(string):
@@ -234,7 +251,7 @@ def toBinary(bytes):
     str = ''
     for i in bytes:
         s = format(i, '08b')
-        s = zeroPadding(s)
+        s, q = zeroPadding(s)
         str += s
     return str
 
@@ -244,7 +261,7 @@ def zeroPadding(str):
     if qty0 > 0:
         qty0 = 8 - qty0
     str += '0' * qty0
-    return str
+    return (str, qty0)
 
 # Função que pega a entropia e o tamanho médio de um código
 def calcInfo(nodes):
