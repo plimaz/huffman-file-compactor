@@ -3,9 +3,6 @@
 
 import argparse, bisect, math, os, pickle
 
-import sys
-sys.set_int_max_str_digits(0)
-
 # -- Classe de nós para criação da árvore binária --
 
 # Classe

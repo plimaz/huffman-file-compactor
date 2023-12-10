@@ -1,7 +1,10 @@
 # Compactador de arquivos
+
+### Pedro José de Araújo Siqueira Lima - 190036541
+
 Implementação de um compactador / descompactador de arquivos via linha de comando que utiliza a codificação de Huffman, como projeto final da disciplina de Teoria da Informação da Universidade de Brasília.
 
-### Comandos:
+### Como utilizar:
 
 #### Compactar: 
 ```bash
@@ -11,4 +14,3 @@ Implementação de um compactador / descompactador de arquivos via linha de coma
 ```bash
     py huff.py -d "arquivo.huff"
 ```
-
