@@ -46,7 +46,8 @@ class Node:
                 getLeaf(node.left)
                 getLeaf(node.right)
         getLeaf(self)
-        return leaves
+
+        return dict(sorted(leaves.items(), key=lambda x:x[1], reverse=True))
 
 # -- Função Principal --
 
@@ -96,7 +97,7 @@ def compact(file):
     compactedFile = fileName + ".huff"
     count = 1
     while os.path.exists(compactedFile):
-        compactedFile = fileName + ' ('+str(count)+')' + '.huff'
+        compactedFile = fileName + '_'+str(count)+'' + '.huff'
         count += 1
 
     # Lendo os bytes do arquivo
@@ -122,8 +123,9 @@ def compact(file):
     # Transformando os bits codificados em bytes
     codedBytes = toBytes(codedData)
 
-    # Adicionando o cabeçalho que será utilizado na decodificaçãox
-    header = {'c': {v[0]: k for k, v in leaves.items()}, 'p': q, 'f': fileExt}
+    # Adicionando o cabeçalho que será utilizado na decodificação
+    header = {'t': huff, 'p': q, 'f': fileExt}
+
     codedHeader = pickle.dumps(header)
 
     # Escrevendo os bytes no arquivo .huff
@@ -163,31 +165,40 @@ def decompact(file):
     # Separando o header do resto
     data = data.split(b'HEADER')
     header = pickle.loads(data[0])
-    codewords = header['c']
+    tree = header['t']
     padding = header['p']
     fileExt = header['f']
 
-    code = toBinary((data[1]))[:-padding]
+    # Removendo o padding
+    codedData = toBinary((data[1]))[:-padding]
 
-    # Substituindo cada byte por seu código (funciona, mas demora)
-    codedData = b''
-    test = ''
-    for x in code:      # pensar como remover o padding
-        test += x
-        if codewords.get(test) != None:
-            codedData += codewords[test]
-            test = ''
+    # Decodificando
+    decodedAux = []
+    node = tree
+    for digit in codedData:
+        # Procurando a folha
+        if digit == '1':
+            tree = tree.right   
+        elif digit == '0':
+            tree = tree.left
+
+        # Se folha, decodifica
+        if tree.left == None and tree.right == None:
+            decodedAux.append(tree.char)
+            tree = node
+        
+    decodedData = b''.join([i for i in decodedAux])
 
     # Arrumando o nome
     unpackedFile = fileName + fileExt 
     count = 1
     while os.path.exists(unpackedFile):
-        unpackedFile = fileName + ' ('+str(count)+')' + fileExt
+        unpackedFile = fileName + '_' +str(count) + fileExt
         count += 1
 
     # Escrevendo os dados no arquivo descompactado
     with open(unpackedFile, "wb") as binaryFile:
-        binaryFile.write(codedData)
+        binaryFile.write(decodedData)
         binaryFile.close()
 
     # Imprimindo tudo na tela
