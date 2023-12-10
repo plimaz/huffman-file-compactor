@@ -9,10 +9,17 @@ Implementação de um compactador / descompactador de arquivos via linha de coma
 #### Compactar: 
 ```bash
     py huff.py -c "arquivo.txt"
+```
+ou
+```bash
     python huff.py -c "arquivo.txt"
 ```
+
 #### Descompactar:
 ```bash
     py huff.py -d "arquivo.huff"
+```
+ou
+```bash
     python huff.py -d "arquivo.huff"
 ```
